@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "dev:workaround": "node workaround-server/server.cjs",
-    "build": "vite build",
+    "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "test": "cypress open",

@@ -1,70 +1,83 @@
 import { DataTypes } from 'sequelize'
-import { sequelize } from '../database.js'
+import {Table, Column, Model, HasMany, BelongsTo} from 'sequelize-typescript';
+import {User} from "./user.js";
+import {Bid} from "./bid.js";
 
-/**
- * @typedef {Object} ProductObject
- * @property {number} id
- * @property {string} name
- * @property {string} description
- * @property {string} category
- * @property {number} originalPrice
- * @property {string} pictureUrl
- * @property {Date} endDate
- * @property {number} sellerId
- */
+@Table
+export class Product extends Model {
 
-export default sequelize.define('Product', {
-  id: {
+  @Column({
     type: DataTypes.UUID,
     defaultValue: DataTypes.UUIDV4,
     allowNull: false,
     primaryKey: true
-  },
-  name: {
+  })
+  declare id: string
+
+  @Column({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
-  },
-  description: {
+  })
+  declare name: string
+
+  @Column({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
-  },
-  category: {
+  })
+  declare description: string
+
+  @Column({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
-  },
-  originalPrice: {
+  })
+  declare category: string
+
+  @Column({
     type: DataTypes.INTEGER,
     allowNull: false,
     validate: {
       isInt: true,
       min: 0
     }
-  },
-  pictureUrl: {
+  })
+  declare originalPrice: number
+
+  @Column({
     type: DataTypes.STRING,
     allowNull: false,
     validate: {
       notEmpty: true
     }
-  },
-  endDate: {
+  })
+  declare pictureUrl: string
+
+  @Column({
     type: DataTypes.DATE,
     allowNull: false,
     validate: {
       isDate: true
     }
-  },
-  sellerId: {
+  })
+  declare endDate: Date
+
+  @Column({
     type: DataTypes.UUID,
     allowNull: false
-  }
-})
+  })
+  declare sellerId: string
+
+  @BelongsTo(() => User, {foreignKey: 'sellerId'})
+  declare seller: Awaited<User>;
+
+  @HasMany(() => Bid, {foreignKey: 'productId', onDelete: 'CASCADE'})
+  declare bids: Awaited<Bid[]>;
+}

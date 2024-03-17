@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
@@ -15,10 +15,7 @@ const error = ref(null);
 
 let userId = computed(() => route.params.userId);
 
-/**
- * @param {Date} date
- */
-const formatDate = (date) => {
+const formatDate = (date: Date) => {
   return new Date(date).toLocaleDateString();
 };
 </script>

@@ -1,4 +1,4 @@
-import authMiddleware from '../middlewares/auth.js'
+import authMiddleware from '../middlewares/auth'
 import { Bid, Product } from '../orm/index.js'
 import express from 'express'
 import { getDetails } from '../validators/index.js'

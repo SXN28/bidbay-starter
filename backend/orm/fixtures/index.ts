@@ -6,8 +6,8 @@ import { Bid, Product, User } from '../index.js'
 
 export async function regenerateFixtures () {
   await Bid.destroy({ where: { } })
-  await User.destroy({ where: { } })
   await Product.destroy({ where: { } })
+  await User.destroy({ where: { } })
 
   const DAY = 24 * 60 * 60 * 1000
 
@@ -224,7 +224,7 @@ export async function regenerateFixtures () {
     if (Math.random() < 0.8) {
       let price = product.originalPrice
 
-      let lastBuyer = null
+      let lastBuyer: null | undefined | User = null
 
       for (let date = new Date(Date.now() + DAY); date < product.endDate; date = new Date(date.getTime() + DAY / 4)) {
         if (Math.random() < 0.2) {
@@ -236,7 +236,7 @@ export async function regenerateFixtures () {
 
           await Bid.create({
             productId: product.id,
-            bidderId: bidder.id,
+            bidderId: bidder?.id,
             price,
             date
           })

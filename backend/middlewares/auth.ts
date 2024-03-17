@@ -1,15 +1,9 @@
 import jwt from 'jsonwebtoken'
-import { JWT_SECRET } from '../consts/secret.js'
-/**
- * Middleware function type import
- * @typedef {import('express').RequestHandler} RequestHandler
- */
+import { JWT_SECRET } from '../consts/secret'
+import {Request, Response, NextFunction} from "express";
+import {Token} from "../types/types";
 
-/**
- * Middleware for authentification
- * @type {RequestHandler}
- */
-const authMiddleware = (req, res, next) => {
+const authMiddleware = (req: Request & {user?: Token}, res: Response, next: NextFunction) => {
   // Récupération du token d'authentification depuis le header Authorization
   const authHeader = req.headers.authorization
   const token = authHeader && authHeader.split(' ')[1]
@@ -26,7 +20,7 @@ const authMiddleware = (req, res, next) => {
     }
 
     // Ajout des informations du token décodé à l'objet de requête pour être utilisées par les routes suivantes
-    req.user = decodedToken
+    req.user = decodedToken as Token
     next()
   })
 }

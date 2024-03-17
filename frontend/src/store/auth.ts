@@ -1,20 +1,18 @@
 import { computed, ref, watch } from "vue";
 import { jwtDecode } from "jwt-decode";
+import {Token} from '../../../backend/types/types'
 
 const token = ref(localStorage.getItem("token") || null);
 
 try {
-  jwtDecode(token.value);
+  jwtDecode(token.value ?? '');
 } catch {
   token.value = null;
 }
 
-/**
- * @type {import('vue').ComputedRef<Token | null>}
- */
 const userData = computed(() => {
   if (!token.value) return null;
-  return jwtDecode(token.value);
+  return jwtDecode(token.value) as Token;
 });
 
 watch(token, () => {
@@ -25,20 +23,11 @@ watch(token, () => {
   }
 });
 
-/**
- * @type {import('vue').ComputedRef<boolean>}
- */
 const isAuthenticated = computed(() => userData.value !== null);
 
-/**
- * @type {import('vue').ComputedRef<boolean>}
- */
 const isAdmin = computed(() => userData.value !== null && userData.value.admin);
 
-/**
- * @type {import('vue').ComputedRef<string>}
- */
-const username = computed(() => userData.value.username);
+const username = computed(() => userData.value?.username ?? '');
 
 export function useAuthStore() {
   return {
@@ -52,10 +41,7 @@ export function useAuthStore() {
   };
 }
 
-/**
- * @param {string} _token
- */
-function login(_token) {
+function login(_token: string) {
   token.value = _token;
 }
 

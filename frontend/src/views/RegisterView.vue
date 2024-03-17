@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from "vue";
 import { useAuthStore } from "../store/auth";
 import { useRouter } from "vue-router/dist/vue-router";
@@ -48,7 +48,7 @@ const registerUser = async () => {
       router.push({ name: "Home" });
     }
   } catch (e) {
-    errorMessage.value = e;
+    errorMessage.value = e as string;
   } finally {
     isSubmitting.value = false;
   }
