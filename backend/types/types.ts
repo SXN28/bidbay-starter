@@ -1,5 +1,5 @@
 export type Token = {
-    id: number;
+    id: string;
     username: string;
     email: string;
     admin: boolean;

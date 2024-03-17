@@ -3,16 +3,17 @@ import jwt from 'jsonwebtoken'
 import { JWT_SECRET } from '../consts/secret.js'
 import express from 'express'
 import { getDetails } from '../validators/index.js'
+import { Request } from 'express';
+import {Token} from "../types/types";
 
 const router = express.Router()
 
 /**
  * Endpoint pour la création d'un nouvel utilisateur
  */
-router.post('/api/auth/register', async (req, res) => {
+router.post('/api/auth/register', async (req: Request<Record<string, never>, {access_token: string} | {error: string; details?: string[]}, {username: string; email: string; password: string}>, res) => {
   try {
-    const reqBody = req.body
-    const { username, email, password } = reqBody
+    const { username, email, password } = req.body
 
     // Vérifier si l'utilisateur existe déjà
     const userWithSameEmail = await User.findOne({ where: { email } })
@@ -39,7 +40,7 @@ router.post('/api/auth/register', async (req, res) => {
     })
 
     // Générer un token JWT pour l'authentification future
-    const payload = {
+    const payload: Token = {
       id: newUser.id,
       username,
       email,
@@ -54,10 +55,8 @@ router.post('/api/auth/register', async (req, res) => {
   }
 })
 
-router.post('/api/auth/login', async (req, res) => {
-
-  const reqBody = req.body
-  const { email, password } = reqBody
+router.post('/api/auth/login', async (req: Request<Record<string, never>, {access_token: string} | {error: string; details?: string[]}, {email: string; password: string}>, res) => {
+  const { email, password } = req.body
 
   try {
     // Vérifier si l'utilisateur existe
@@ -77,7 +76,7 @@ router.post('/api/auth/login', async (req, res) => {
     }
 
     // Générer un token JWT pour l'authentification future
-    const payload = {
+    const payload: Token = {
       id: user.id,
       username: user.username,
       email: user.email,
