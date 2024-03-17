@@ -679,6 +679,10 @@ Menu de navigation
 
 ## Get started
 
+### Javascript vs Typescript
+La version typescript est disponible dans la branche `main-ts`.
+Si vous l'utilisez, il faudra la merge dans la branche `main`.
+
 ### Lancer le frontend
 
 ```
