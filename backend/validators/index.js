@@ -3,5 +3,5 @@
  * @returns {string[]}
  */
 export function getDetails (e) {
-  return e.errors.map(error => error.message)
+  return Array.isArray(e) ? e.errors.map(error => error.message) : [e.message]
 }
