@@ -5,14 +5,17 @@ const loading = ref(false);
 const error = ref(false);
 const products = ref([]);
 
+let sortBy = 'name'; // Variable pour suivre le type de tri en cours
+
 function sortByName() {
+  sortBy = 'name';
   products.value.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 function sortByPrice() {
+  sortBy = 'price';
   products.value.sort((a, b) => a.originalPrice - b.originalPrice);
 }
-
 
 let searchTerm = '';
 
@@ -21,17 +24,6 @@ function filterProducts() {
   filteredProducts.value = searchTerm
     ? products.value.filter(product => product.name.toLowerCase().includes(searchTerm))
     : products.value.slice();
-  sortProducts();
-}
-
-function sortProducts() {
-  if (searchTerm) {
-    if (sortOption === 'name') {
-      sortByName();
-    } else {
-      sortByPrice();
-    }
-  }
 }
 
 const filteredProducts = computed(() => {
@@ -62,9 +54,8 @@ function formatDate(dateString) {
   const date = new Date(dateString);
   return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
 }
-
-
 </script>
+
 
 <template>
   <div>
@@ -72,47 +63,39 @@ function formatDate(dateString) {
 
     <div class="row mb-3">
       <div class="col-md-6">
-      <form>
-        <div class="input-group">
-          <span class="input-group-text">Filtrage</span>
-          <input
-            v-model="searchTerm"
-            @input="filterProducts"
-            type="text"
-            class="form-control"
-            placeholder="Filtrer par nom"
-            data-test-filter
-          />
-        </div>
-      </form>
-    </div>
-
-
-
-
+        <form>
+          <div class="input-group">
+            <span class="input-group-text">Filtrage</span>
+            <input
+              v-model="searchTerm"
+              @input="filterProducts"
+              type="text"
+              class="form-control"
+              placeholder="Filtrer par nom"
+              data-test-filter
+            />
+          </div>
+        </form>
+      </div>
 
       <div class="col-md-6 text-end">
-      <div class="btn-group">
-        <button
-          type="button"
-          class="btn btn-primary dropdown-toggle"
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-          data-test-sorter
-        >
-          {{ sortOption === 'name' ? 'Trier par nom' : 'Trier par prix' }}
-        </button>
-        <ul class="dropdown-menu dropdown-menu-end">
-          <!-- Appel des méthodes de tri lorsque les options sont sélectionnées -->
-          <li><a class="dropdown-item" href="#" @click="sortByName"> Nom </a></li>
-          <li><a class="dropdown-item" href="#" @click="sortByPrice"> Prix </a></li>
-        </ul>
+        <div class="btn-group">
+          <button
+            type="button"
+            class="btn btn-primary dropdown-toggle"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            data-test-sorter
+          >
+            Trier par {{ sortBy === 'name' ? 'nom' : 'prix' }}
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <!-- Appel des méthodes de tri lorsque les options sont sélectionnées -->
+            <li><a class="dropdown-item" href="#" @click="sortByName"> Nom </a></li>
+            <li><a class="dropdown-item" href="#" @click="sortByPrice"> Prix </a></li>
+          </ul>
+        </div>
       </div>
-    </div>
-
-
-
-
     </div>
 
     <div class="row">
@@ -140,8 +123,7 @@ function formatDate(dateString) {
         </div>
       </div>
     </div>
-
-    
-    
   </div>
 </template>
+
+
