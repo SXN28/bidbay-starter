@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter, RouterLink } from "vue-router";
 import { useAuthStore } from "../store/auth";
 
@@ -9,32 +9,73 @@ const route = useRoute();
 const router = useRouter();
 
 const productId = ref(route.params.productId);
+const productData = ref(null);
+const isLoading = ref(true);
+const error = ref(null);
+const bidAmount = ref(0);
+const remainingTime = ref(null);
 
-/**
- * @param {number|string|Date|VarDate} date
- */
+// Fonction pour charger les données du produit depuis l'API
+async function loadProduct() {
+  console.log(productId.value);
+  try {
+    const response = await fetch(`http://localhost:3000/api/products/${productId.value}`);
+    console.log(response);
+    if (!response.ok) {
+      throw new Error("Erreur lors de la récupération des données du produit");
+    }
+    productData.value = await response.json();
+    // Calculer le temps restant après avoir chargé les données du produit
+    calculateRemainingTime();
+  } catch (err) {
+    console.error(err);
+    error.value = "Une erreur est survenue lors du chargement des données du produit.";
+  } finally {
+    isLoading.value = false;
+  }
+}
+
+// Appeler la fonction pour charger les données du produit après le montage du composant
+onMounted(() => {
+  loadProduct();
+});
+
+// Calculer le temps restant
+function calculateRemainingTime() {
+  const endTime = new Date(productData.value.endDate).getTime();
+  const currentTime = new Date().getTime();
+  const remainingMilliseconds = Math.max(0, endTime - currentTime);
+  const remainingHours = Math.floor(remainingMilliseconds / (1000 * 60 * 60));
+  const remainingMinutes = Math.floor((remainingMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
+  const remainingSeconds = Math.floor((remainingMilliseconds % (1000 * 60)) / 1000);
+  // Formater le temps restant en format HH:MM:SS
+  remainingTime.value = `${remainingHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+}
+
+// Formater la date
 function formatDate(date) {
   const options = { year: "numeric", month: "long", day: "numeric" };
   return new Date(date).toLocaleDateString("fr-FR", options);
 }
+
 </script>
 
 <template>
   <div class="row">
-    <div class="text-center mt-4" data-test-loading>
+    <div class="text-center mt-4" data-test-loading v-if="isLoading">
       <div class="spinner-border" role="status">
         <span class="visually-hidden">Chargement...</span>
       </div>
     </div>
 
-    <div class="alert alert-danger mt-4" role="alert" data-test-error>
-      Une erreur est survenue lors du chargement des produits.
+    <div class="alert alert-danger mt-4" role="alert" data-test-error v-if="error">
+      {{ error }}
     </div>
-    <div class="row" data-test-product>
-      <!-- Colonne de gauche : image et compte à rebours -->
+
+    <div class="row" data-test-product v-if="productData">
       <div class="col-lg-4">
         <img
-          src="https://picsum.photos/id/250/512/512"
+          :src="productData && productData.picture ? productData.picture : ''"
           alt=""
           class="img-fluid rounded mb-3"
           data-test-product-picture
@@ -45,23 +86,22 @@ function formatDate(date) {
           </div>
           <div class="card-body">
             <h6 class="card-subtitle mb-2 text-muted" data-test-countdown>
-              Temps restant : {{ countdown }}
+              Temps restant : {{ remainingTime }}
             </h6>
           </div>
         </div>
       </div>
 
-      <!-- Colonne de droite : informations du produit et formulaire d'enchère -->
       <div class="col-lg-8">
         <div class="row">
           <div class="col-lg-6">
             <h1 class="mb-3" data-test-product-name>
-              Appareil photo argentique
+              {{ productData.name }}
             </h1>
           </div>
           <div class="col-lg-6 text-end">
             <RouterLink
-              :to="{ name: 'ProductEdition', params: { productId: 'TODO' } }"
+              :to="{ name: 'ProductEdition', params: { productId: productData.id } }"
               class="btn btn-primary"
               data-test-edit-product
             >
@@ -76,21 +116,20 @@ function formatDate(date) {
 
         <h2 class="mb-3">Description</h2>
         <p data-test-product-description>
-          Appareil photo argentique classique, parfait pour les amateurs de
-          photographie
+          {{ productData.description }}
         </p>
 
         <h2 class="mb-3">Informations sur l'enchère</h2>
         <ul>
-          <li data-test-product-price>Prix de départ : 17 €</li>
-          <li data-test-product-end-date>Date de fin : 20 juin 2026</li>
+          <li data-test-product-price>Prix de départ : {{ productData.startingPrice }} €</li>
+          <li data-test-product-end-date>Date de fin : {{ formatDate(productData.endDate) }}</li>
           <li>
             Vendeur :
             <router-link
-              :to="{ name: 'User', params: { userId: 'TODO' } }"
+              :to="{ name: 'User', params: { userId: productData.sellerId } }"
               data-test-product-seller
             >
-              alice
+              {{ productData.sellerName }}
             </router-link>
           </li>
         </ul>
@@ -106,17 +145,20 @@ function formatDate(date) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in 10" :key="i" data-test-bid>
+            <tr v-if="productData.bids.length === 0" data-test-no-bids>
+              <td colspan="4">Aucune offre pour le moment</td>
+            </tr>
+            <tr v-else v-for="(bid, index) in productData.bids" :key="index" data-test-bid>
               <td>
                 <router-link
-                  :to="{ name: 'User', params: { userId: 'TODO' } }"
+                  :to="{ name: 'User', params: { userId: bid.bidderId } }"
                   data-test-bid-bidder
                 >
-                  charly
+                  {{ bid.bidderName }}
                 </router-link>
               </td>
-              <td data-test-bid-price>43 €</td>
-              <td data-test-bid-date>22 mars 2026</td>
+              <td data-test-bid-price>{{ bid.amount }} €</td>
+              <td data-test-bid-date>{{ formatDate(bid.date) }}</td>
               <td>
                 <button class="btn btn-danger btn-sm" data-test-delete-bid>
                   Supprimer
@@ -125,7 +167,6 @@ function formatDate(date) {
             </tr>
           </tbody>
         </table>
-        <p data-test-no-bids>Aucune offre pour le moment</p>
 
         <form data-test-bid-form>
           <div class="form-group">
@@ -135,6 +176,7 @@ function formatDate(date) {
               class="form-control"
               id="bidAmount"
               data-test-bid-form-price
+              v-model="bidAmount"
             />
             <small class="form-text text-muted">
               Le montant doit être supérieur à 10 €.
@@ -143,7 +185,7 @@ function formatDate(date) {
           <button
             type="submit"
             class="btn btn-primary"
-            disabled
+            :disabled="bidAmount <= 10"
             data-test-submit-bid
           >
             Enchérir

@@ -1,77 +1,97 @@
-import express from 'express'
-import { Product, Bid, User } from '../orm/index.js'
-import authMiddleware from '../middlewares/auth.js'
-import { getDetails } from '../validators/index.js'
+import express from 'express';
+import { Product, User } from '../orm/index.js';
+import authMiddleware from '../middlewares/auth.js';
 
-const router = express.Router()
+const router = express.Router();
 
 router.get('/api/products', async (req, res, next) => {
   try {
-    const products = await Product.findAll({
-      include: {
-        model: User,
-        as: 'seller'
-      }
-    });
-    res.json(products);
+    /** @type {ProductObject | null} */
+    // Récupérer tous les produits avec toutes les associations
+    const products = await Product.findAll({ include: { all: true } })
+    res.status(200).json(products)
   } catch (error) {
-    // Gérer les erreurs de manière appropriée
-    console.error('Une erreur s\'est produite lors de la récupération des produits :', error);
-    res.status(500).json({ message: 'Une erreur s\'est produite lors de la récupération des produits' });
+    console.error('Error:', error)
+    res.sendStatus(500)
   }
 });
 
 router.get('/api/products/:productId', async (req, res) => {
-  res.status(600).send()
-})
-
-// You can use the authMiddleware with req.user.id to authenticate your endpoint ;)
-
-router.post('/api/products', async (req, res) => {
   try {
-    const { name, description, category, originalPrice, pictureUrl, endDate, sellerId } = req.body;
-
-    if (!name || !description || !category || !originalPrice || !endDate || !sellerId) {
-      return res.status(400).json({ message: 'Toutes les données nécessaires ne sont pas fournies' });
+    /** @type {ProductObject | null} */
+    // Trouver un produit par son ID avec toutes les associations
+    const product = await Product.findOne({ where: { id: req.params.productId }, include: { all: true, nested: true } })
+    if (product) {
+      res.status(200).json(product)
+    } else {
+      res.status(404).send()
     }
+  } catch (error) {
+    console.error('Error:', error)
+    res.sendStatus(500)
+  }
+});
 
-    // Optionnel : Vérifier si l'utilisateur (sellerId) existe dans la base de données avant de créer le produit
-
-    const newProduct = await Product.create({
-      name,
-      description,
-      category,
-      originalPrice,
-      pictureUrl,
-      endDate,
-      sellerId,
-    });
-
+router.post('/api/products', authMiddleware, async (req, res, next) => {
+  try {
+    /** @type {ProductObject | null} */
+    // Créer un nouveau produit avec le vendeur associé
+    let product = req.body;
+    product.sellerId = req.user.id;
+    /** @type {ProductObject | null} */
+    const newProduct = await Product.create(product);
     res.status(201).json(newProduct);
   } catch (error) {
-    // Gérer l'erreur correctement en renvoyant une réponse d'erreur au client
-    console.error('Une erreur s\'est produite lors de la création du produit :', error);
-    res.status(500).json({ message: 'Une erreur s\'est produite lors de la création du produit' });
+    console.error('Error:', error)
+    res.status(400).json({ error: 'Invalid or missing fields', details: getDetails(error) })
   }
 });
 
-router.put('/api/products/:productId', async (req, res) => {
-  res.status(600).send()
-})
 
-router.delete('/api/products/:productId', authMiddleware, async (req, res, next) => {
+router.put('/api/products/:productId', authMiddleware, async (req, res) => {
+  try {
+    // Trouver le produit à mettre à jour
+    /** @type {ProductObject | null} */
+    const product = await Product.findOne({ where: { id: req.params.productId } });
+    if (!product) {
+      return res.sendStatus(404);
+    }
+    // Vérifier les autorisations
+    if (product.sellerId !== req.user.id && !req.user.admin) {
+      return res.sendStatus(403);
+    }
+    // Mettre à jour le produit
+    await Product.update(req.body, { where: { id: req.params.productId } });
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Error:', error)
+    res.sendStatus(500);
+  }
+});
+
+
+router.delete('/api/products/:productId', async (req, res) => {
   try {
     const productId = req.params.productId;
+
+    // Recherche du produit par son ID
     const product = await Product.findByPk(productId);
+
+    // Vérifiez si le produit existe
     if (!product) {
-      return res.status(404).json({ message: 'Produit non trouvé' });
+      // Si le produit n'est pas trouvé, renvoyer une erreur 404
+      return res.status(404).json({ error: 'Product not found' });
     }
+
+    // Supprimez le produit de la base de données
     await product.destroy();
 
-    res.status(204).send();
+    // Réponse indiquant que le produit a été supprimé avec succès
+    res.status(200).json({ message: 'Product deleted successfully' });
   } catch (error) {
-    next(error);
+    console.error('Une erreur s\'est produite lors de la suppression du produit :', error);
+    res.status(500).json({ message: 'Une erreur s\'est produite lors de la suppression du produit' });
   }
 });
 
-export default router
+export default router;
