@@ -15,7 +15,6 @@ const error = ref(null);
 const bidAmount = ref(0);
 const remainingTime = ref(null);
 
-// Fonction pour charger les données du produit depuis l'API
 async function loadProduct() {
   console.log(productId.value);
   try {
@@ -25,7 +24,6 @@ async function loadProduct() {
       throw new Error("Erreur lors de la récupération des données du produit");
     }
     productData.value = await response.json();
-    // Calculer le temps restant après avoir chargé les données du produit
     calculateRemainingTime();
   } catch (err) {
     console.error(err);
@@ -35,12 +33,10 @@ async function loadProduct() {
   }
 }
 
-// Appeler la fonction pour charger les données du produit après le montage du composant
 onMounted(() => {
   loadProduct();
 });
 
-// Calculer le temps restant
 function calculateRemainingTime() {
   const endTime = new Date(productData.value.endDate).getTime();
   const currentTime = new Date().getTime();
@@ -48,11 +44,9 @@ function calculateRemainingTime() {
   const remainingHours = Math.floor(remainingMilliseconds / (1000 * 60 * 60));
   const remainingMinutes = Math.floor((remainingMilliseconds % (1000 * 60 * 60)) / (1000 * 60));
   const remainingSeconds = Math.floor((remainingMilliseconds % (1000 * 60)) / 1000);
-  // Formater le temps restant en format HH:MM:SS
   remainingTime.value = `${remainingHours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// Formater la date
 function formatDate(date) {
   const options = { year: "numeric", month: "long", day: "numeric" };
   return new Date(date).toLocaleDateString("fr-FR", options);

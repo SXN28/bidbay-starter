@@ -4,55 +4,84 @@ import { useRoute, useRouter } from "vue-router";
 
 import { useAuthStore } from "../store/auth";
 
-const { isAuthenticated, userData } = useAuthStore();
+const { isAuthenticated, isAdmin, userData } = useAuthStore();
 
+const user = ref({});
+const bids = ref([]);
 const router = useRouter();
 const route = useRoute();
 
-const user = ref(null);
-const loading = ref(false);
-const error = ref(null);
+const loading = ref(true);
+const error = ref(false);
 
-let userId = computed(() => route.params.userId);
+const userID_DATA = computed(() => userData.value ? userData.value.id : null);
+const userID_URL = computed(() => route.params.userId);
+const url_admin = ref(false);
 
-/**
- * @param {Date} date
- */
 const formatDate = (date) => {
   return new Date(date).toLocaleDateString();
 };
+
+async function fetchData(link) {
+  if (!link) return;
+  try {
+    const response = await fetch("http://localhost:3000/api/users/" + link);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error);
+    } else {
+      user.value = data;
+      bids.value = data.bids;
+      if (data.admin) {
+        url_admin.value = true;
+      }
+    }
+  } catch (e) {
+    error.value = true;
+    console.error("Une erreur est survenue lors du chargement des données :", e);
+  } finally {
+    loading.value = false;
+  }
+}
+
+fetchData(userID_URL.value != "me" ? userID_URL.value : userID_DATA.value);
+
 </script>
 
+
+
 <template>
+
+
   <div>
+
     <h1 class="text-center" data-test-username>
-      Utilisateur charly
-      <span class="badge rounded-pill bg-primary" data-test-admin>Admin</span>
+      Utilisateur {{user.username}}
+      <span v-if="isAdmin || url_admin" class="badge rounded-pill bg-primary" data-test-admin>Admin</span>
     </h1>
-    <div class="text-center" data-test-loading>
+    <div v-if="loading" class="text-center" data-test-loading>
       <span class="spinner-border"></span>
       <span>Chargement en cours...</span>
     </div>
-    <div class="alert alert-danger mt-3" data-test-error>
+    <div v-if="error" class="alert alert-danger mt-3" data-test-error>
       Une erreur est survenue
     </div>
-    <div data-test-view>
+    <div v-if="!loading && !error"  data-test-view>
       <div class="row">
         <div class="col-lg-6">
           <h2>Produits</h2>
-          <div class="row">
+          <div v-if="!loading" class="row">
             <div
               class="col-md-6 mb-6 py-2"
-              v-for="i in 10"
-              :key="i"
-              data-test-product
+              v-for="product in user.products"data-test-product
             >
               <div class="card">
                 <RouterLink
-                  :to="{ name: 'Product', params: { productId: 'TODO' } }"
+                  :to="{ name: 'Product', params: { productId: product.id } }"
                 >
                   <img
-                    src="https://image.noelshack.com/fichiers/2023/12/4/1679526253-65535-51925549650-96f088a093-b-512-512-nofilter.jpg"
+                    :src="product.pictureUrl"
                     class="card-img-top"
                     data-test-product-picture
                   />
@@ -62,20 +91,18 @@ const formatDate = (date) => {
                     <RouterLink
                       :to="{
                         name: 'Product',
-                        params: { productId: 'TODO' },
+                        params: { productId: product.id },
                       }"
                       data-test-product-name
                     >
-                      Chapeau en poil de chameau
+                    {{product.name}}
                     </RouterLink>
                   </h5>
                   <p class="card-text" data-test-product-description>
-                    Ce chapeau en poil de chameau est un véritable chef-d'œuvre
-                    artisanal, doux au toucher et résistant pour une durabilité
-                    à long terme.
+                    {{ product.description }}
                   </p>
                   <p class="card-text" data-test-product-price>
-                    Prix de départ : 23 €
+                    Prix de départ : {{ product.originalPrice }} €
                   </p>
                 </div>
               </div>
@@ -93,20 +120,20 @@ const formatDate = (date) => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="i in 10" :key="i" data-test-bid>
+              <tr v-for="bid in bids" data-test-bid>
                 <td>
                   <RouterLink
                     :to="{
                       name: 'Product',
-                      params: { productId: 'TODO' },
+                      params: { productId: bid.product.id },
                     }"
                     data-test-bid-product
                   >
-                    Théière design
+                    {{bid.product.name}}
                   </RouterLink>
                 </td>
-                <td data-test-bid-price>713 €</td>
-                <td data-test-bid-date>{{ formatDate(new Date()) }}</td>
+                <td data-test-bid-price>{{ bid.price }} €</td>
+                <td data-test-bid-date>{{ formatDate(bid.date) }}</td>
               </tr>
             </tbody>
           </table>
